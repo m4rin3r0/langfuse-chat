@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Traces{% endblock %}
+{% block content %}
+<h1>Traces <span class="muted">({{ total }})</span></h1>
+{% for day, traces in day_list %}
+<section class="day-group">
+  <h2 class="day-header">{{ day }}</h2>
+  <ul class="trace-list">
+    {% for t in traces %}
+    <li class="trace-item">
+      <a href="/trace/{{ t.id }}">
+        <span class="trace-time">{{ t.time }}</span>
+        <span class="trace-name">{{ t.name }}</span>
+        {% if t.duration %}<span class="trace-duration">{{ t.duration }}</span>{% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ header.name }}{% endblock %}
+{% block content %}
+<div class="trace-header">
+  <a href="/" class="back-link">&larr; Übersicht</a>
+  <h1>{{ header.name }}</h1>
+  <div class="trace-meta">
+    <span>{{ header.time }}</span>
+    {% if header.duration %}<span>{{ header.duration }}</span>{% endif %}
+    <span class="muted">{{ header.id }}</span>
+    <a class="export-link" href="{{ url_for('trace_export', trace_id=header.id) }}" download>⬇ JSON Export</a>
+  </div>
+</div>
+<div class="chat">
+  {% for turn in turns %}
+  <div class="turn turn-{{ turn.side }} kind-{{ turn.kind }}">
+    <details class="bubble" open>
+      <summary class="bubble-label">{{ turn.label }}</summary>
+      {% for block in turn.blocks %}
+        {% if block.type == "thinking" %}
+        <div class="block block-thinking">{{ block.text }}</div>
+        {% elif block.type == "tool_call" %}
+        <pre class="block block-tool-call">{{ block.text }}</pre>
+        {% elif block.type == "tool_input" %}
+        <pre class="block block-tool-call">{{ block.text }}</pre>
+        {% elif block.type == "tool_result" %}
+        <pre class="block block-tool-result">{{ block.text }}</pre>
+        {% else %}
+        <div class="block block-text">{{ block.text }}</div>
+        {% endif %}
+      {% endfor %}
+      {% if turn.duration or turn.tokens %}
+      <div class="bubble-footer">
+        {% if turn.duration %}<span>⏱ {{ turn.duration }}</span>{% endif %}
+        {% if turn.tokens %}<span>🔢 {{ turn.tokens }}</span>{% endif %}
+      </div>
+      {% endif %}
+    </details>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
