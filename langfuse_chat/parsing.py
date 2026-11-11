@@ -83,10 +83,28 @@ def _scope_name(obs:dict) -> str|None:
     return ((obs.get("metadata") or {}).get("scope") or {}).get("name")
 
 
-def _seed_turns(generations:list[dict]) -> list[dict]:
+def _agent_instructions(observations:list[dict]) -> str:
+    """Read the agent instructions from the pydantic-ai AGENT observation.
+    Args:
+        observations: All observations of a trace.
+    Return:
+        The concatenated system instructions, or "" if none are found.
+    Raises:
+        None.
+    """
+    # newer pydantic-ai leaves the generation's system parts empty and only records instructions on the agent run span
+    for obs in observations:
+        if obs.get("type") == "AGENT" and _scope_name(obs) == "pydantic-ai" and isinstance(obs.get("input"), list):
+            return "\n\n".join(m.get("content", "") for m in obs["input"]
+                               if isinstance(m, dict) and m.get("role") == "system" and isinstance(m.get("content"), str))
+    return ""
+
+
+def _seed_turns(generations:list[dict], instructions:str="") -> list[dict]:
     """Build the initial system/user turns from the first generation's input.
     Args:
         generations: Generation observations sorted by start time.
+        instructions: Fallback text for a system message whose parts are empty.
     Return:
         List of right-side turns for each system/user message; empty if there are no generations.
     Raises:
@@ -100,6 +118,8 @@ def _seed_turns(generations:list[dict]) -> list[dict]:
         if msg.get("role") not in ("system", "user"):
             continue
         text = "\n\n".join(p.get("content", "") for p in msg.get("parts", []) if p.get("type") == "text")
+        if msg["role"] == "system" and not text:
+            text = instructions
         turns.append({"side": "right", "kind": msg["role"], "label": "System" if msg["role"] == "system" else "User",
                       "blocks": [{"type": "text", "text": text}], "duration": None, "tokens": None, "time": None})
     return turns
@@ -165,7 +185,7 @@ def build_chat(trace:dict) -> list[dict]:
     generations  = sorted((o for o in observations if o.get("type") == "GENERATION" and _scope_name(o) == "pydantic-ai"), key=lambda o: o["startTime"])
     tool_results = [o for o in observations if o.get("type") == "TOOL" and _scope_name(o) == "pydantic-ai" and o.get("output") is not None]
     events = sorted([("gen", o) for o in generations] + [("tool", o) for o in tool_results], key=lambda e: e[1]["startTime"])
-    turns = _seed_turns(generations)
+    turns = _seed_turns(generations, _agent_instructions(observations))
     for kind, obs in events:
         turns.extend(_assistant_turn(obs) if kind == "gen" else [_tool_turn(obs)])
     return turns
