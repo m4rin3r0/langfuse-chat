@@ -12,10 +12,7 @@ The setup is tailored to pydantic-ai traces (with `Agent.instrument_all()`), see
 
 ## Setup
 
-```powershell
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -r requirements.txt
-```
+OrbAll commands are run from the repository root.
 
 Create a `.env` file (see `.env.example`):
 
@@ -25,9 +22,30 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
-## Running
+For a self-hosted Langfuse instance, set `LANGFUSE_BASE_URL` to its URL, e.g. `http://localhost:3000`.
+
+### macOS / Linux
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r langfuse_chat/requirements.txt
+.venv/bin/python langfuse_chat/app.py
+```
+
+Or, with [uv](https://docs.astral.sh/uv/), in a single command without creating a venv first:
+
+```bash
+uv run --with-requirements langfuse_chat/requirements.txt langfuse_chat/app.py
+```
+
+> **Port 5000 already in use on macOS?** The AirPlay Receiver listens on port 5000. Turn it off under
+> *System Settings → General → AirDrop & Handoff → AirPlay Receiver*, or change the port in `app.py`.
+
+### Windows
 
 ```powershell
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r langfuse_chat/requirements.txt
 .venv\Scripts\python.exe langfuse_chat/app.py
 ```
 
