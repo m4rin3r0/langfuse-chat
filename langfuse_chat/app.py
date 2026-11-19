@@ -1,6 +1,7 @@
 import json
-from flask import Flask, render_template, abort, Response
-from langfuse_client import list_traces, get_trace
+from flask import Flask, render_template, abort, Response, request
+from langfuse_client import (HOST, get_trace_generation_summaries, list_traces, list_trace_ids_by_model,
+                             list_models, list_agent_run_counts, get_trace)
 from parsing import build_chat, to_local, format_duration
 
 MAX_TRACES = 1000
@@ -36,7 +37,7 @@ def fetch_all_traces(limit_total:int=MAX_TRACES) -> list[dict]:
 
 @app.route("/")
 def index():
-    """Render the overview page with all traces grouped by local day.
+    """Render the overview page with traces grouped by local day, optionally filtered by model.
     Args:
         None.
     Return:
@@ -46,16 +47,34 @@ def index():
         requests.RequestException: On connection errors or timeouts.
         KeyError: If a trace lacks the "id" or "timestamp" field.
     """
+    model_filter = request.args.get("model", "")
+    search_query = request.args.get("search", "").strip()
+    models = list_models()
     traces = fetch_all_traces()
+    if model_filter:
+        matching_trace_ids = list_trace_ids_by_model(model_filter, [trace["id"] for trace in traces])
+        traces = [trace for trace in traces if trace["id"] in matching_trace_ids]
+    if search_query:
+        normalized_query = search_query.casefold()
+        traces = [trace for trace in traces
+                  if normalized_query in trace["id"].casefold()
+                  or normalized_query in (trace.get("name") or "").casefold()]
+    agent_run_counts = list_agent_run_counts([trace["id"] for trace in traces])
+    generation_summaries = get_trace_generation_summaries([trace["id"] for trace in traces])
     traces.sort(key=lambda t: t["timestamp"], reverse=True)
     groups = {}
     for t in traces:
         local_dt = to_local(t["timestamp"])
         day_key  = local_dt.date().isoformat()
-        groups.setdefault(day_key, []).append({"id": t["id"], "name": t.get("name") or "(ohne Namen)",
-                                                "time": local_dt.strftime("%H:%M:%S"), "duration": format_duration(t.get("latency"))})
+        llm, total_tokens = generation_summaries[t["id"]]
+        groups.setdefault(day_key, []).append({"id": t["id"], "name": t.get("name") or "(unnamed)",
+                                                "time": local_dt.strftime("%H:%M:%S"), "duration": format_duration(t.get("latency")),
+                                                "agent_runs": agent_run_counts.get(t["id"], 0),
+                                                "llm": llm, "total_tokens": f"{total_tokens:,}",
+                                                "langfuse_url": f"{HOST}{t['htmlPath']}"})
     day_list = sorted(groups.items(), key=lambda kv: kv[0], reverse=True)
-    return render_template("index.html", day_list=day_list, total=len(traces))
+    return render_template("index.html", day_list=day_list, total=len(traces), model_filter=model_filter,
+                           models=models, search_query=search_query)
 
 
 @app.route("/trace/<trace_id>")
@@ -73,7 +92,7 @@ def trace_view(trace_id:str):
     except Exception:
         abort(404)
     header = {"name": trace.get("name"), "id": trace["id"], "time": to_local(trace["timestamp"]).strftime("%d.%m.%Y %H:%M:%S"),
-              "duration": format_duration(trace.get("latency"))}
+              "duration": format_duration(trace.get("latency")), "langfuse_url": f"{HOST}{trace['htmlPath']}"}
     return render_template("trace.html", header=header, turns=build_chat(trace))
 
 

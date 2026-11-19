@@ -2,13 +2,14 @@
 {% block title %}{{ header.name }}{% endblock %}
 {% block content %}
 <div class="trace-header">
-  <a href="/" class="back-link">&larr; Übersicht</a>
+  <a href="/" class="back-link">&larr; Overview</a>
   <h1>{{ header.name }}</h1>
   <div class="trace-meta">
     <span>{{ header.time }}</span>
     {% if header.duration %}<span>{{ header.duration }}</span>{% endif %}
     <span class="muted">{{ header.id }}</span>
-    <a class="export-link" href="{{ url_for('trace_export', trace_id=header.id) }}" download>⬇ JSON Export</a>
+    <a class="export-link" href="{{ url_for('trace_export', trace_id=header.id) }}" download>⬇ JSON export</a>
+    <a class="export-link" href="{{ header.langfuse_url }}" target="_blank" rel="noopener noreferrer">Open in Langfuse</a>
   </div>
 </div>
 <div class="chat">

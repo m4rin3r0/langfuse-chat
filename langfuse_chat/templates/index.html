@@ -1,21 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Traces{% endblock %}
 {% block content %}
-<h1>Traces <span class="muted">({{ total }})</span></h1>
-{% for day, traces in day_list %}
-<section class="day-group">
-  <h2 class="day-header">{{ day }}</h2>
-  <ul class="trace-list">
-    {% for t in traces %}
-    <li class="trace-item">
-      <a href="/trace/{{ t.id }}">
-        <span class="trace-time">{{ t.time }}</span>
-        <span class="trace-name">{{ t.name }}</span>
-        {% if t.duration %}<span class="trace-duration">{{ t.duration }}</span>{% endif %}
-      </a>
-    </li>
+<div class="page-layout">
+  <aside class="filter-sidebar">
+    <form class="trace-filter" method="get" action="/">
+      <h2>Filter</h2>
+      <input type="hidden" name="search" value="{{ search_query }}">
+      <label for="model-filter">LLM</label>
+      <select id="model-filter" name="model">
+        <option value="">All models</option>
+        {% for model in models %}
+        <option value="{{ model }}" {% if model == model_filter %}selected{% endif %}>{{ model }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Apply filter</button>
+      {% if model_filter %}<a href="{{ url_for('index', search=search_query) }}">Reset filter</a>{% endif %}
+    </form>
+  </aside>
+  <section class="trace-overview">
+    <h1>Traces <span class="muted">({{ total }})</span></h1>
+    {% if day_list %}
+    <div class="trace-columns" aria-hidden="true">
+      <span>Time</span>
+      <span>Trace</span>
+      <span>LLM</span>
+      <span>Agent runs</span>
+      <span>Total tokens</span>
+      <span>Duration</span>
+      <span>Actions</span>
+    </div>
+    {% endif %}
+    {% for day, traces in day_list %}
+    <section class="day-group">
+      <h2 class="day-header">{{ day }}</h2>
+      <ul class="trace-list">
+        {% for t in traces %}
+        <li class="trace-item">
+          <div class="trace-row">
+            <a class="trace-link" href="/trace/{{ t.id }}">
+              <span class="trace-time">{{ t.time }}</span>
+              <span class="trace-info">
+                <span class="trace-name">{{ t.name }}</span>
+                <span class="trace-id">{{ t.id }}</span>
+              </span>
+              <span class="trace-models" title="{{ t.llm }}">{{ t.llm }}</span>
+              <span class="trace-agent-runs">{{ t.agent_runs }}</span>
+              <span class="trace-total-tokens" title="{{ t.total_tokens }}">{{ t.total_tokens }}</span>
+              {% if t.duration %}<span class="trace-duration">{{ t.duration }}</span>{% endif %}
+            </a>
+            <div class="trace-actions">
+              <button class="trace-copy-button" type="button" data-trace-id="{{ t.id }}"
+                      aria-label="Copy trace ID {{ t.id }}" title="Copy trace ID">Copy ID</button>
+              <a class="trace-open-button" href="{{ t.langfuse_url }}" target="_blank" rel="noopener noreferrer">Open in Langfuse</a>
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
     {% endfor %}
-  </ul>
-</section>
-{% endfor %}
+    {% if (model_filter or search_query) and not day_list %}
+    <p>No traces found{% if search_query %} matching "{{ search_query }}"{% endif %}{% if model_filter %}{% if search_query %} and{% endif %} with an LLM call using "{{ model_filter }}"{% endif %}.</p>
+    {% endif %}
+  </section>
+</div>
 {% endblock %}

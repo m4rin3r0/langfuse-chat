@@ -2,7 +2,12 @@
 
 Displays Langfuse traces as a clean chat view (instead of the native Langfuse dashboard).
 
-- All traces listed chronologically, grouped by day (newest first).
+- All traces listed chronologically, grouped by day (newest first), with a sidebar filter for models used in generation observations.
+- Search traces by trace ID or run name from the header; on a trace page, the same field searches within the current trace.
+- Copy trace IDs directly from the overview.
+- Open traces directly in Langfuse from the overview or chat view.
+- Show the number of agent runs per trace, excluding runs whose names contain "judge".
+- Show generation models and combined input/output token totals for each trace.
 - Clicking a trace opens a chat view:
   - The LLM's reasoning texts and tool calls appear on the left.
   - Tool results (and the initial system/user message) appear on the right.

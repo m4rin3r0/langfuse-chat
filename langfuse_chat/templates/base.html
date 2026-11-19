@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,7 +7,43 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<header class="topbar"><a href="/" class="brand">Langfuse Chat</a></header>
-<main>{% block content %}{% endblock %}</main>
+<header class="topbar">
+  <a href="/" class="brand">Langfuse Chat</a>
+  <form class="header-search" id="header-search" method="get" action="/"
+        data-find-in-page="{% if request.endpoint == 'trace_view' %}true{% else %}false{% endif %}">
+    <input type="search" name="search" aria-label="Search trace ID or run name"
+           placeholder="{% if request.endpoint == 'trace_view' %}Find in this trace...{% else %}Search trace ID or run name...{% endif %}"
+           value="{{ search_query if request.endpoint == 'index' else '' }}">
+    {% if request.endpoint == 'index' and model_filter %}
+    <input type="hidden" name="model" value="{{ model_filter }}">
+    {% endif %}
+    <button type="submit">{% if request.endpoint == 'trace_view' %}Find{% else %}Search{% endif %}</button>
+  </form>
+</header>
+<main class="{% if request.endpoint == 'trace_view' %}trace-page{% else %}overview-page{% endif %}">{% block content %}{% endblock %}</main>
+<script>
+  const searchForm = document.getElementById("header-search");
+  if (searchForm.dataset.findInPage === "true") {
+    searchForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const query = searchForm.elements.namedItem("search").value.trim();
+      if (query) window.find(query, false, false, true);
+    });
+  }
+  document.querySelectorAll(".trace-copy-button").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) {
+        button.textContent = "Clipboard unavailable";
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(button.dataset.traceId);
+        button.textContent = "Copied";
+      } catch {
+        button.textContent = "Copy failed";
+      }
+    });
+  });
+</script>
 </body>
 </html>
