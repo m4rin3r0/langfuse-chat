@@ -3,3 +3,5 @@ __pycache__/
 output/
 .venv/
 .DS_Store
+langfuse_chat/instance/
+runs.sqlite3

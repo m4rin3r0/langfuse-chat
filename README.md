@@ -56,6 +56,27 @@ python -m venv .venv
 
 Then open `http://127.0.0.1:5000` in your browser.
 
+## Import run assignments
+
+Use **Upload CSV** in the overview sidebar to import a UTF-8, comma-separated file:
+
+```csv
+run_id,run_name,trace_id
+baseline-2026-11-26,Baseline,0c2ccd620b782dece9a49c1a6d639f2f
+experiment-2026-11-26,Experiment,0e90a7e92e096c53484b4e6ee45eeffa
+```
+
+The maximum file size is 5 MB. All three fields are required. Each run ID must
+have one consistent name, including across imports. Imports are atomic and
+additive; duplicate assignments are ignored. A trace can belong to multiple runs.
+After a successful upload, the sidebar displays `uploaded: filename.csv` instead
+of the file picker and disables the Upload CSV button. This state persists across
+page reloads and app restarts.
+Assignments are persisted in `langfuse_chat/instance/runs.sqlite3` without changing
+Langfuse. The **Run** filter combines with the LLM filter and text search, and
+applies to the overview's maximum of 2,000 fetched traces. Trace IDs are
+not checked against Langfuse during import.
+
 ## Project Structure
 
 - `langfuse_client.py` — REST client for the Langfuse Public API (Basic Auth with public/secret key).

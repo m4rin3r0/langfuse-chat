@@ -17,6 +17,9 @@
     {% if request.endpoint == 'index' and model_filter %}
     <input type="hidden" name="model" value="{{ model_filter }}">
     {% endif %}
+    {% if request.endpoint == 'index' and run_filter %}
+    <input type="hidden" name="run" value="{{ run_filter }}">
+    {% endif %}
     <button type="submit">{% if request.endpoint == 'trace_view' %}Find{% else %}Search{% endif %}</button>
   </form>
 </header>

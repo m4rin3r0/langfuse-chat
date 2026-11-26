@@ -15,6 +15,8 @@ h1 { font-size: 1.4rem; }
 .trace-filter h2 { margin: 0 0 4px; font-size: 1rem; }
 .trace-filter select { width: 100%; padding: 8px 10px; border: 1px solid #c8cbd0; border-radius: 6px; background: #fff; font: inherit; }
 .trace-filter button { padding: 8px 14px; border: 0; border-radius: 6px; background: #4a6cf7; color: #fff; font: inherit; cursor: pointer; }
+.trace-filter button:disabled { background: #bdbdbd; color: #666; cursor: not-allowed; }
+.uploaded-csv { overflow-wrap: anywhere; }
 .trace-filter a { color: #4a6cf7; text-decoration: none; }
 .trace-overview { min-width: 0; }
 .trace-overview h1 { margin-top: 0; }

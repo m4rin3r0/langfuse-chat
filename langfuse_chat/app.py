@@ -1,13 +1,16 @@
 import json
+from pathlib import Path
 from flask import Flask, render_template, abort, Response, request
 from langfuse_client import (HOST, get_trace_generation_summaries, list_traces, list_trace_ids_by_model,
                              list_models, list_agent_run_counts, get_trace)
 from parsing import build_chat, to_local, format_duration
+from runs import import_runs, list_runs, run_trace_ids, uploaded_csv_name
 
-MAX_TRACES = 1000
+MAX_TRACES = 2000
 PAGE_SIZE  = 100
 
 app = Flask(__name__)
+app.config["RUNS_DATABASE"] = str(Path(app.instance_path) / "runs.sqlite3")
 
 
 def fetch_all_traces(limit_total:int=MAX_TRACES) -> list[dict]:
@@ -48,9 +51,14 @@ def index():
         KeyError: If a trace lacks the "id" or "timestamp" field.
     """
     model_filter = request.args.get("model", "")
+    run_filter = request.args.get("run", "")
+    runs = list_runs(app.config["RUNS_DATABASE"])
     search_query = request.args.get("search", "").strip()
     models = list_models()
     traces = fetch_all_traces()
+    if run_filter:
+        assigned_ids = run_trace_ids(app.config["RUNS_DATABASE"], run_filter)
+        traces = [trace for trace in traces if trace["id"] in assigned_ids]
     if model_filter:
         matching_trace_ids = list_trace_ids_by_model(model_filter, [trace["id"] for trace in traces])
         traces = [trace for trace in traces if trace["id"] in matching_trace_ids]
@@ -74,7 +82,24 @@ def index():
                                                 "langfuse_url": f"{HOST}{t['htmlPath']}"})
     day_list = sorted(groups.items(), key=lambda kv: kv[0], reverse=True)
     return render_template("index.html", day_list=day_list, total=len(traces), model_filter=model_filter,
-                           models=models, search_query=search_query)
+                           models=models, search_query=search_query, runs=runs, run_filter=run_filter,
+                           uploaded_csv=uploaded_csv_name(app.config["RUNS_DATABASE"]))
+
+
+@app.route("/runs/import", methods=["POST"])
+def run_import():
+    upload = request.files.get("file")
+    if not upload or not upload.filename or not upload.filename.lower().endswith(".csv"):
+        return render_template("import_result.html", error="Please select a CSV file."), 400
+    content = upload.stream.read(5 * 1024 * 1024 + 1)
+    if len(content) > 5 * 1024 * 1024:
+        return render_template("import_result.html", error="The CSV must not exceed 5 MB."), 413
+    try:
+        filename = upload.filename.replace("\\", "/").rsplit("/", 1)[-1]
+        count = import_runs(app.config["RUNS_DATABASE"], content, filename)
+    except ValueError as error:
+        return render_template("import_result.html", error=str(error)), 400
+    return render_template("import_result.html", imported=count)
 
 
 @app.route("/trace/<trace_id>")

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}CSV import{% endblock %}
+{% block content %}
+<h1>CSV import</h1>
+{% if error %}
+<p role="alert">{{ error }} No assignments were imported.</p>
+{% else %}
+<p role="status">Import complete: {{ imported }} new assignments added. Existing assignments were preserved.</p>
+{% endif %}
+<a href="{{ url_for('index') }}">Back to overview</a>
+{% endblock %}
